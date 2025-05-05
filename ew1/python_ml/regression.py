@@ -1,5 +1,3 @@
-# regression.py
-
 import yfinance as yf
 import numpy as np
 import pymc as pm

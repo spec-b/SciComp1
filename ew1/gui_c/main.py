@@ -9,6 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from python_ml.regression import fetch_data, run_bayesian_regression
 
+from python_ml.distributed_training import run_distributed_training
+
+import yfinance as yf
+
+
 # Function to install packages
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
@@ -97,6 +102,10 @@ class BayesianRegressionGUI(QMainWindow):
         self.label = QLabel("Choose analysis mode:", self)
         self.layout.addWidget(self.label)
 
+        self.ticker_input = QLineEdit(self)
+        self.ticker_input.setPlaceholderText("Enter tickers (e.g., AAPL, MSFT, GOOG)")
+        self.layout.addWidget(self.ticker_input)
+
         # Buttons for analysis modes
         self.single_button = QPushButton("Single Stock Analysis", self)
         self.layout.addWidget(self.single_button)
@@ -126,6 +135,11 @@ class BayesianRegressionGUI(QMainWindow):
         self.run_button.clicked.connect(self.run_regression)
         self.run_button.hide()
 
+        self.dist_train_button = QPushButton("Run Distributed Training (SSP Demo)", self)
+        self.layout.addWidget(self.dist_train_button)
+        self.dist_train_button.clicked.connect(self.run_distributed_training_gui)
+
+
         self.result_label = QLabel("", self)
         self.layout.addWidget(self.result_label)
         self.result_label.hide()
@@ -135,6 +149,9 @@ class BayesianRegressionGUI(QMainWindow):
         self.setCentralWidget(container)
 
         self.current_data = None
+        self.ticker_input = QLineEdit(self)
+
+
 
     def show_single_stock(self):
         self.symbol_input.show()
@@ -186,7 +203,7 @@ class BayesianRegressionGUI(QMainWindow):
                 f"Slope (beta): {beta['mean']:.4f} [{beta['hdi_3%']:.4f}, {beta['hdi_97%']:.4f}]"
             )
             self.result_label.setText(result_text)
-            # Optional: Plot actual data
+            # Plot actual data
             y = self.current_data['Close'].values
             X = np.arange(len(y))
             plt.plot(X, y, label="Actual")
@@ -195,6 +212,45 @@ class BayesianRegressionGUI(QMainWindow):
             plt.show()
         except Exception as e:
             self.result_label.setText(f"Error: {str(e)}")
+
+    def run_distributed_training_gui(self):
+        self.result_label.setText("Running distributed training...")
+        self.repaint()  # Update the GUI immediately
+
+        tickers_str = self.ticker_input.text()
+        tickers = [t.strip().upper() for t in tickers_str.split(',') if t.strip()]
+
+        try:
+            final_params = run_distributed_training(tickers=tickers)
+            result_text = (
+                f"Distributed Training Finished!\n"
+                f"Final parameters:\n"
+                f"w = {final_params['w']:.4f}\n"
+                f"b = {final_params['b']:.4f}"
+            )
+        except Exception as e:
+            result_text = f"Error: {e}"
+
+        self.result_label.setText(result_text)
+        self.result_label.show()
+
+        # Only plot actual data if self.current_data is available
+        if self.current_data is not None:
+            y = self.current_data['Close'].values
+            X = np.arange(len(y))
+            plt.plot(X, y, label="Actual")
+            plt.title(f"Stock Price for {self.symbol_input.text().upper()}")
+            plt.legend()
+            plt.show()
+            # Optionally update result_label to show both results
+            self.result_label.setText(result_text + "\nPlotted actual stock data.")
+        else:
+            # No stock data loaded, so just show the result
+            self.result_label.setText(result_text)
+        
+        self.result_label.show()
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
