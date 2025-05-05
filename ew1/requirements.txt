@@ -1,0 +1,10 @@
+pyqt5
+yfinance
+matplotlib
+scikit-learn
+numpy
+pandas 
+scipy
+mpi4py
+pymc
+arviz
